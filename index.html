@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NightCoffee BD — Late-Night Coffee Spots in Dhaka</title>
+  <style>
+    :root {
+      --bg: #120c09;
+      --surface: #1e140f;
+      --surface-2: #2a1c15;
+      --gold: #d4a373;
+      --gold-soft: rgba(212, 163, 115, 0.16);
+      --text: #f7efe6;
+      --muted: #b8a696;
+      --open: #38c172;
+      --open-bg: rgba(56, 193, 114, 0.14);
+      --closed: #e57373;
+      --closed-bg: rgba(229, 115, 115, 0.14);
+      --border: rgba(212, 163, 115, 0.2);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 48px; }
+
+    header {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(18, 12, 9, 0.92); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border); padding: 14px 16px;
+    }
+    .brand-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .brand h1 { font-size: 1.25rem; color: var(--gold); letter-spacing: 0.3px; }
+    .brand p { font-size: 0.8rem; color: var(--muted); }
+
+    .btn {
+      border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+      padding: 8px 12px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-gold { background: var(--gold); color: #160e0a; border: none; }
+
+    .controls { max-width: 960px; margin: 14px auto 0; padding: 0 16px; display: grid; gap: 10px; }
+    .search-input, select, input, textarea {
+      width: 100%; background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; font-size: 0.92rem;
+    }
+    .filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .chip {
+      padding: 7px 12px; border-radius: 999px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--muted); font-size: 0.8rem; cursor: pointer;
+    }
+    .chip.active { background: var(--gold-soft); color: var(--gold); border-color: var(--gold); font-weight: 700; }
+
+    .stats-bar {
+      max-width: 960px; margin: 12px auto 0; padding: 0 16px;
+      display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--muted);
+    }
+
+    .grid {
+      max-width: 960px; margin: 12px auto 0; padding: 0 16px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      padding: 14px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .card-title { font-size: 1rem; font-weight: 700; }
+    .badge {
+      font-size: 0.72rem; font-weight: 700; padding: 4px 9px; border-radius: 999px; white-space: nowrap;
+    }
+    .badge.open { background: var(--open-bg); color: var(--open); }
+    .badge.closed { background: var(--closed-bg); color: var(--closed); }
+
+    .meta { font-size: 0.82rem; color: var(--muted); line-height: 1.45; }
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tag { font-size: 0.72rem; background: var(--surface-2); color: var(--gold); padding: 3px 8px; border-radius: 8px; }
+
+    .actions { display: flex; gap: 8px; margin-top: auto; padding-top: 6px; }
+    .actions a, .actions button {
+      flex: 1; text-align: center; text-decoration: none;
+      padding: 8px 10px; border-radius: 10px; font-size: 0.8rem; font-weight: 600;
+      border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer;
+    }
+    .actions a.primary { background: var(--gold); color: #160e0a; border: none; }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.72);
+      display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: 100%; max-width: 440px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 18px; padding: 18px;
+      display: grid; gap: 10px;
+    }
+    .modal h2 { font-size: 1.05rem; color: var(--gold); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-row">
+      <div class="brand">
+        <h1>NightCoffee BD</h1>
+        <p>Late-night & past-midnight coffee spots in Dhaka</p>
+      </div>
+      <button class="btn btn-gold" id="openAddModal">+ Add Spot</button>
+    </div>
+  </header>
+
+  <section class="controls">
+    <input class="search-input" id="searchInput" type="text" placeholder="Search cafe name, area, or road..." />
+    <div class="filter-row" id="areaChips"></div>
+    <div class="filter-row">
+      <button class="chip active" id="openNowFilter">Open Now</button>
+      <button class="chip" id="lateNightFilter">Open Past 12 AM</button>
+      <button class="chip" id="favOnlyFilter">Favorites</button>
+    </div>
+  </section>
+
+  <div class="stats-bar">
+    <span id="resultCount">Loading spots...</span>
+    <span id="clockDisplay"></span>
+  </div>
+
+  <main class="grid" id="shopGrid"></main>
+
+  <div class="modal-backdrop" id="addModal">
+    <div class="modal">
+      <h2>Submit a Dhaka Coffee Shop</h2>
+      <input id="shopName" type="text" placeholder="Cafe Name (e.g., Midnight Roast)" />
+      <input id="shopArea" type="text" placeholder="Area (e.g., Dhanmondi, Banani, Khilgaon)" />
+      <input id="shopAddress" type="text" placeholder="Full Address" />
+      <input id="shopHours" type="text" placeholder="Hours (e.g., 6:00 PM - 2:00 AM)" />
+      <input id="shopPhone" type="text" placeholder="Phone (optional, e.g., +88017...)" />
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:6px;">
+        <button class="btn" id="closeAddModal">Cancel</button>
+        <button class="btn btn-gold" id="saveShopBtn">Save Spot</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "nightcoffee_bd_custom_shops_v1";
+    const FAV_KEY = "nightcoffee_bd_favs_v1";
+
+    const DEFAULT_SHOPS = [
+      { id: "north-end-banani", name: "North End Coffee Roasters", area: "Banani", address: "House 41, Road 11, Block F, Banani", hours: "8:00 AM - 1:00 AM", openMin: 480, closeMin: 60, rating: 4.8, phone: "+8801711002411", tags: ["Roastery", "Late Night"] },
+      { id: "tabaq-dhanmondi", name: "Tabaq Coffee", area: "Dhanmondi", address: "House 45, Satmasjid Road (Road 27), Dhanmondi", hours: "10:00 AM - 2:00 AM", openMin: 600, closeMin: 120, rating: 4.7, phone: "+8801841233344", tags: ["Quiet Lounge", "Past 12 AM"] },
+      { id: "kiva-han-khilgaon", name: "Kiva Han Coffee", area: "Khilgaon", address: "624/C, Taltola Market Lane, Block C, Khilgaon", hours: "4:00 PM - 3:00 AM", openMin: 960, closeMin: 180, rating: 4.6, phone: "+8801912556677", tags: ["Terrace", "Past 12 AM"] },
+      { id: "gloria-jeans-dhanmondi", name: "Gloria Jean's Coffees", area: "Dhanmondi", address: "House 742, Road 27 (Old), Dhanmondi", hours: "9:00 AM - 4:00 AM", openMin: 540, closeMin: 240, rating: 4.6, phone: "+8801713445566", tags: ["Late Night", "Past 12 AM"] },
+      { id: "beans-aroma-mirpur", name: "Beans & Aroma", area: "Mirpur", address: "House 18, Begum Rokeya Sarani, Mirpur 10", hours: "11:00 AM - 11:00 PM", openMin: 660, closeMin: 1380, rating: 4.5, phone: "+8801677334455", tags: ["Evening Spot"] }
+    ];
+
+    let state = {
+      search: "",
+      area: "All",
+      openNowOnly: true,
+      lateNightOnly: false,
+      favOnly: false,
+      favs: JSON.parse(localStorage.getItem(FAV_KEY) || "[]"),
+      customShops: JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")
+    };
+
+    function getAllShops() {
+      return [...DEFAULT_SHOPS, ...state.customShops];
+    }
+
+    function isOpenNow(openMin, closeMin, nowMin) {
+      if (closeMin <= openMin) {
+        return nowMin >= openMin || nowMin < closeMin;
+      }
+      return nowMin >= openMin && nowMin < closeMin;
+    }
+
+    function isPastMidnight(closeMin, hoursText = "") {
+      if (closeMin > 0 && closeMin <= 360) return true;
+      return /12:\d\d\s*am|1:\d\d\s*am|2:\d\d\s*am|3:\d\d\s*am|4:\d\d\s*am|5:\d\d\s*am/i.test(hoursText);
+    }
+
+    function normalizeKey(name, address) {
+      return `${name} ${address}`.toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function renderChips() {
+      const areas = ["All", ...new Set(getAllShops().map(s => s.area))];
+      const container = document.getElementById("areaChips");
+      container.innerHTML = "";
+      areas.forEach(a => {
+        const btn = document.createElement("button");
+        btn.className = `chip ${state.area === a ? "active" : ""}`;
+        btn.textContent = a;
+        btn.onclick = () => { state.area = a; render(); };
+        container.appendChild(btn);
+      });
+
+      document.getElementById("openNowFilter").classList.toggle("active", state.openNowOnly);
+      document.getElementById("lateNightFilter").classList.toggle("active", state.lateNightOnly);
+      document.getElementById("favOnlyFilter").classList.toggle("active", state.favOnly);
+    }
+
+    function render() {
+      renderChips();
+      const now = new Date();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      document.getElementById("clockDisplay").textContent = `Dhaka Time: ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+
+      const q = state.search.trim().toLowerCase();
+      const filtered = getAllShops().filter(shop => {
+        const open = isOpenNow(shop.openMin, shop.closeMin, nowMin);
+        if (state.openNowOnly && !open) return false;
+        if (state.lateNightOnly && !isPastMidnight(shop.closeMin, shop.hours)) return false;
+        if (state.favOnly && !state.favs.includes(shop.id)) return false;
+        if (state.area !== "All" && shop.area !== state.area) return false;
+        if (q) {
+          const hay = `${shop.name} ${shop.area} ${shop.address}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      document.getElementById("resultCount").textContent = `${filtered.length} coffee spots shown`;
+      const grid = document.getElementById("shopGrid");
+      grid.innerHTML = "";
+
+      if (!filtered.length) {
+        grid.innerHTML = `<p class="meta" style="grid-column:1/-1; padding:16px;">No matching spots under current filters. Try turning off "Open Now" or clearing search.</p>`;
+        return;
+      }
+
+      filtered.forEach(shop => {
+        const open = isOpenNow(shop.openMin, shop.closeMin, nowMin);
+        const isFav = state.favs.includes(shop.id);
+        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.name + " " + shop.address + " Dhaka")}`;
+
+        const card = document.createElement("article");
+        card.className = "card";
+        card.innerHTML = `
+          <div class="card-top">
+            <div class="card-title">${shop.name}</div>
+            <span class="badge ${open ? "open" : "closed"}">${open ? "Open Now" : "Closed"}</span>
+          </div>
+          <div class="meta">
+            <div><strong>${shop.area}</strong> • ⭐ ${shop.rating || "4.5"}</div>
+            <div>${shop.address}</div>
+            <div>Hours: ${shop.hours}</div>
+          </div>
+          <div class="tags">
+            ${(shop.tags || ["Dhaka Cafe"]).map(t => `<span class="tag">${t}</span>`).join("")}
+          </div>
+          <div class="actions">
+            <a class="primary" href="${mapUrl}" target="_blank" rel="noopener">Maps</a>
+            ${shop.phone ? `<a href="tel:${shop.phone}">Call</a>` : ""}
+            <button data-fav="${shop.id}">${isFav ? "Saved" : "Save"}</button>
+          </div>
+        `;
+        card.querySelector("[data-fav]").onclick = () => {
+          if (state.favs.includes(shop.id)) {
+            state.favs = state.favs.filter(id => id !== shop.id);
+          } else {
+            state.favs.push(shop.id);
+          }
+          localStorage.setItem(FAV_KEY, JSON.stringify(state.favs));
+          render();
+        };
+        grid.appendChild(card);
+      });
+    }
+
+    document.getElementById("searchInput").oninput = e => { state.search = e.target.value; render(); };
+    document.getElementById("openNowFilter").onclick = () => { state.openNowOnly = !state.openNowOnly; render(); };
+    document.getElementById("lateNightFilter").onclick = () => { state.lateNightOnly = !state.lateNightOnly; render(); };
+    document.getElementById("favOnlyFilter").onclick = () => { state.favOnly = !state.favOnly; render(); };
+
+    const modal = document.getElementById("addModal");
+    document.getElementById("openAddModal").onclick = () => modal.classList.add("open");
+    document.getElementById("closeAddModal").onclick = () => modal.classList.remove("open");
+
+    document.getElementById("saveShopBtn").onclick = () => {
+      const name = document.getElementById("shopName").value.trim();
+      const area = (document.getElementById("shopArea").value.trim() || "Dhaka");
+      const address = document.getElementById("shopAddress").value.trim();
+      const hours = (document.getElementById("shopHours").value.trim() || "6:00 PM - 2:00 AM");
+      const phone = document.getElementById("shopPhone").value.trim();
+
+      if (!name || !address) return;
+
+      const candidateKey = normalizeKey(name, address);
+      const exists = getAllShops().some(s => normalizeKey(s.name, s.address) === candidateKey);
+      if (exists) {
+        alert("This coffee shop seems already listed.");
+        return;
+      }
+
+      const newShop = {
+        id: "custom-" + Date.now(),
+        name, area, address, hours, phone,
+        openMin: 18 * 60,
+        closeMin: 2 * 60,
+        rating: 4.5,
+        tags: ["Community Added", "Late Night"]
+      };
+
+      state.customShops.push(newShop);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.customShops));
+      ["shopName", "shopArea", "shopAddress", "shopHours", "shopPhone"].forEach(id => document.getElementById(id).value = "");
+      modal.classList.remove("open");
+      render();
+    };
+
+    render();
+  </script>
+</body>
+</html>
